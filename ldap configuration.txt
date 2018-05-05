@@ -1,0 +1,334 @@
+apt-get update
+apt-get upgrade
+apt-get install mysql-server
+	(user: root password:root)
+service mysql start [restart | stop]
+mysql -u ri
+
+
+http://apprendre-python.com/page-database-data-base-donnees-query-sql-mysql-postgre-sqlite
+
+https://www.thegeekstuff.com/2014/01/install-dns-server
+
+https://askubuntu.com/questions/800216/installing-ubuntu-16-04-lts-how-to-install-odbc?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+
+iface eth0 inet static
+address  192.168.1.100
+netmask 255.255.255.0
+gateway 192.168.1.1
+
+auto eth0
+
+
+sudo /etc/init.d/networking restart
+
+
+iface enp0s8 inet static
+address 192.168.1.101 
+netmask 255.255.255.0 
+gateway 192.168.1.1 
+
+auto enp0s8
+
+
+    /etc/init.d/networking restart script based command.
+    service restart networking – Use service to run a System V init script such as networking.
+    systemctl restart networking – Restart networking for the latest version of Ubuntu server.
+
+
+ remote access Configurations :
+	GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY 'password' WITH GRANT OPTION;
+	FLUSH PRIVILEGES;
+
+	In	/etc/mysql/my.cnf or /etc/mysql/mysql.conf.d/mysqld.cnf
+		Change line
+			bind-address = 127.0.0.1
+		to
+			#bind-address = 127.0.0.1
+		add 
+			skip-name-resolve
+
+
+
+
+/etc/sysctl.conf => net.ipv4.ip_forward = 1 => reboot
+
+run the following script after ecry reboot :
+
+#!/bin/sh
+#ip route del default
+modprobe iptable_nat
+echo 1 > /proc/sys/net/ipv4/ip_forward
+iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE
+iptables -A FORWARD -i enp0s3 -j ACCEPT
+
+note: 	enp0s3 -> Nat interface
+
+client ip route add default 192.168.1.1
+
+G1 : /etc/network/interfaces
+	auto eth0
+	iface eth0 inet static
+	address 192.168.1.101
+	netmask 255.255.255.0
+	gateway 192.168.1.2
+	up echo nameserver 192.168.1.1 > /etc/resolv.conf
+
+sql:
+	auto eth0
+	iface eth0 inet static
+	address 192.168.1.101
+	netmask 255.255.255.0
+	gateway 192.168.1.2
+	up echo nameserver 192.168.1.1 > /etc/resolv.conf
+
+ns: 
+	auto eth0
+	iface eth0 inet static
+	address 192.168.1.1
+	netmask 255.255.255.0
+	gateway 192.168.1.2
+	up echo nameserver 192.168.1.1 > /etc/resolv.conf
+
+ldap:
+	auto eth0
+	iface eth0 inet static
+	address 192.168.1.100
+	netmask 255.255.255.0
+	gateway 192.168.1.2
+	up echo nameserver 192.168.1.1 > /etc/resolv.conf
+
+http://how-to.wikia.com/wiki/How_to_set_up_a_NAT_router_on_a_Linux-based_computer
+
+
+
+install dns:
+	sudo apt-get install bind9
+	nano /etc/bind/named.conf.options =>
+		forwarders {
+  			8.8.8.8;
+			8.8.4.4;
+		};
+	sudo service bind9 restart
+
+dns mapping sur ikheiry.fr :
+
+file: /etc/bind/named.conf.local
+//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";
+
+zone "ikheiry.fr" {
+    type master;
+    file "/etc/bind/db.ikheiry.fr";
+};
+zone "1.168.192.in-addr.arpa" {
+        type master;
+        notify no;
+        file "/etc/bind/db.192";
+};
+
+
+file: /etc/bind/db.ikheiry.fr
+;
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	ns.ikheiry.fr. lak.localhost. (
+			   1024		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+;
+@	IN	NS	ns.ikheiry.fr.
+;ikheiry.fr.	IN	MX	10	mail.ikheiry.fr.
+ns	IN 	A 	192.168.1.1
+ldap1	IN	A	192.168.1.100
+sql	IN	A	192.168.1.101
+g1	IN	A	192.168.1.2
+adm	IN	A	192.168.1.200
+m1	IN	A	192.168.1.10
+
+
+file: /etc/bind/db.192
+;
+; BIND reverse data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	ns.ikheiry.fr. root.ikheiry.fr. (
+			     20		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+;
+@	IN	NS	ns.
+1	IN	PTR	ns.ikheiry.fr.
+100	IN	PTR	ldap1.ikheiry.fr.
+101 	IN	PTR	sql.ikheiry.fr.
+2	IN	PTR	g1.ikheiry.fr.
+200 	IN	PTR	adm.ikheiry.fr.
+10	IN	PTR	m1.ikheiry.fr.
+
+
+le test:
+		ping g1.ikheiry.fr
+		ping ns.ikheiry.fr
+		ping ldap1.ikheiry.fr
+		...
+
+
+install odbc:
+	apt-get install iodbc
+	https://askubuntu.com/questions/800216/installing-ubuntu-16-04-lts-how-to-install-odbc?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa
+
+	/etc/odbcinst.ini:
+	[MySQL]
+	Description = ODBC for MySQL
+	Driver = /usr/lib/x86_64-linux-gnu/odbc/libmyodbc5a.so
+	Setup = /usr/lib/x86_64-linux-gnu/odbc/libodbcmyS.so
+	FileUsage = 1
+
+	/etc/odbc.ini:
+	[ldap-connector]
+	Description           = LDAP MySQL database connection
+	Driver                = MySQL
+	Database              = ldap_db
+	Server                = sql.ikheiry.fr
+	User             = root
+	Password              = root
+        Socket                = /var/run/mysqld/mysqld.sock 
+
+	cmd: isql -v ldap-connector                    
+
+
+ldap: openldap (https://www.youtube.com/watch?v=Dis67IrDQjw)
+	nano /etc/hostname => ldap1.ikheiry.fr
+	apt-get install slapd ldap-utils => admin password: (super user password -> root password)
+	nano /etc/ldap/ldap.conf : 
+	
+	#
+	# LDAP Defaults
+	#
+
+	# See ldap.conf(5) for details
+	# This file should be world readable but not world writable.
+
+	BASE    dc=ikheiry,dc=fr
+	URI     ldap://ldap1.ikheiry.fr:389
+
+	#SIZELIMIT      12
+	#TIMELIMIT      15
+	#DEREF          never
+
+	# TLS certificates (needed for GnuTLS)
+	TLS_CACERT      /etc/ssl/certs/ca-certificates.crt
+
+	
+	dpkg-reconfigure slapd
+	
+	test the ldap : ldapsearch -x
+	gedit /etc/phpldapadmin/config.php 
+	
+	systemctl restart apche2
+	go to page : http://ldap1.ikheiry.fr/phpldapadmin/
+
+
+
+adm (ldap client):
+	sudo apt-get update
+	sudo apt-get -y install libnss-ldap libpam-ldap ldap-utils nscd
+	sudo vi /etc/nsswitch.conf
+		passwd:         ldap compat
+		group:          ldap compat
+		shadow:         ldap compat
+	sudo vi /etc/pam.d/common-session
+		session required        pam_mkhomedir.so skel=/etc/skel umask=0022
+	sudo service nscd restart
+
+	python:
+	apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+	pip install python-ldap
+	
+
+	[(
+		'cn=Ismail Kheiry,cn=developpeurs,ou=ou-ikheiry-ldap,dc=ikheiry,dc=fr', 
+		{	
+			'cn': ['Ismail Kheiry'],
+			'objectClass': ['inetOrgPerson', 'posixAccount', 'top'],
+			'loginShell': ['/bin/sh'],
+			'userPassword': ['{MD5}A06MWbSc3C6xmFHkQB6ZSQ=='],
+			'uidNumber': ['1000'],
+			'gidNumber': ['500'],
+			'sn': ['Kheiry'],
+			'homeDirectory': ['/home/users/ikheiry'],
+			'givenName': ['Ismail'],
+			'uid': ['ikheiry']
+		}
+	)]
+
+
+
+debian Virtualbox guest:
+ 32
+down vote
+accepted
+
+Follow these steps to install the VirtualBox Guest Additions on your Linux Debian virtual machine:
+
+    Open terminal and become root (su); if you have sudo enabled, you may also do for example sudo -i; see man sudo for all options):
+
+    su
+
+    Update APT cache:
+
+    apt-get update
+
+    Install the latest security updates:
+
+    This step will upgrade all your packages, so be wise about it. Try the following steps first and they might be enough to work if not, then perform upgrade and retry.
+
+    apt-get upgrade
+
+    Install these required packages:
+
+        Packages build-essential and module-assistant are both required to be able to compile the kernel modules and so when installing the VirtualBox Linux Guest Additions you must have them. So, this command will get the headers and packages (compilers and libraries) required to work. Notice, that after installing your VirtualBox Linux Guest Additions you will leave behind some packages as well as Linux headers, which you might delete afterwards or not. In my case they didn't hurt, but for the sake of system tidiness, you might want to pick up after playing.
+
+    apt-get install build-essential module-assistant
+
+    Configure your system for building kernel modules:
+
+    m-a prepare
+
+    Insert Guest Additions ISO:
+
+    Expand menu Devices and click on Insert Guest Additions CD image...
+
+    It should mount automatically, but if for any reason it doesn't:
+
+    mount /media/cdrom
+
+    Run the following script:
+
+    sh /media/cdrom/VBoxLinuxAdditions.run
+
+    Restart the system:
+
+    reboot
+
+
+
+
+sudo apt-get remove --purge mysql*
+sudo apt-get autoremove
+sudo apt-get autoclean
+
+
+
+
+
